@@ -2,6 +2,7 @@ if (!window.indexedDB) {
     window.alert("このブラウザーは安定版の IndexedDB をサポートしていません。IndexedDB の機能は利用できません。");
 }
 
+// 1. データベースを開く
 // DB Name, version number
 const request = window.indexedDB.open("testDB", 1);
 const storeName = "samples";
@@ -16,13 +17,14 @@ request.onsuccess = event => {
   console.log('success');
   db = event.target.result;
   console.log(db);
-  createLists();
+  updateLists();
 };
 
 // 新しいデータベースの作成, バージョン更新(openの時に新しいバージョン番号を指定する)の際に発火
 request.onupgradeneeded = event => {
   console.log('upgradeneeded');
   let db = event.target.result;
+  // 2. データベース内にオブジェクトストアを作成
   // storeを作成
   db.createObjectStore(storeName, {
     keyPath : 'id', // 主キーを設定
@@ -33,15 +35,18 @@ request.onupgradeneeded = event => {
 
 const button = document.getElementById("save");
 button.addEventListener("click", () => {
-  // データの読み書きをするためにトランザクションを張る
+  // 3. データの読み書きをするためにトランザクションを張る
   const transaction = db.transaction(storeName, "readwrite");
   const store = transaction.objectStore(storeName);
   const cmt = document.getElementById("comment");
   const data = { comment: cmt.value }; // autoIncrementがONになっていると自動でidキーが作られるらしい
+  // 3'. データ追加のリクエスト
   const req = store.put(data);
   req.onsuccess = () => {
+    // 4. 適切な DOM イベントを受け取ることにより、操作が完了するのを待ちます
+    // 5. 結果 (リクエストオブジェクトで見つけることができます) に応じた処理を行います
     cmt.value = null;
-    createLists();
+    updateLists();
   };
   transaction.oncomplete = () => {
     // onsuccess後の実行
@@ -50,8 +55,8 @@ button.addEventListener("click", () => {
   };
 });
 
-// liのリストを作成する
-function createLists() {
+// DBに合わせてliのリスト表示
+function updateLists() {
   clearNodes();
 
   const transaction = db.transaction(storeName, "readonly");
